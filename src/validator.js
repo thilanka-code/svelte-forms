@@ -28,16 +28,22 @@ export function Form (formId, formFields) {
         this.fields.set(fld.fieldId, fld);
     }
 
-    this.isValid = () => Array.from(this.fields.values())
-        .filter(v => typeof v.isValid !== 'undefined' && !v.isValid).length < 1;
+    //Explain below statement
+    // this.isValid = () => Array.from(this.fields.values())
+    //     .filter(v => typeof v.isValid !== 'undefined' && !v.isValid).length < 1;
 
 }
 
 /**
+ * @param {*} formField { value: "", validation: { minLength: 1 } }
+ * 
 * Action that will handle validation of a field
+* Will only run once during the init phase
+* Attaches a listener func to the field
+* As in use:validation construct of html field
 */
 export function validation(node, formField) {
-
+    
     let initialValid = validateField(formField.value, formField.validation);
     formField['isValid'] = initialValid;
     formField['isDirty'] = false;
@@ -60,15 +66,14 @@ export function validation(node, formField) {
     })
 
     function textFieldListener(event) {
-        let newVal = validateField(event.target.value, formField.validation);
-
-        formField['isValid'] = newVal;
+        let isValid = validateField(event.target.value, formField.validation);
+        formField['isValid'] = isValid;
         formField['isDirty'] = true;
-        formField['showError'] = !newVal;
+        formField['showError'] = !isValid;
         
         formValidity.update(store => {
 
-            store[formField.form]['fields'][formField.fieldId] = { isValid: newVal, isDirty: true, showError: !newVal };
+            store[formField.form]['fields'][formField.fieldId] = { isValid: isValid, isDirty: true, showError: !isValid };
             // Update the validity of whole form
             let isFormValid = true;
             for (const [key, field] of Object.entries(store[formField.form]['fields'])) {
@@ -92,6 +97,39 @@ export function validation(node, formField) {
             node.removeEventListener("input", textFieldListener);
         }
     };
+}
+
+/**
+ * Iterate over all fields and update if form is valid or not. Usually this should be called after bounded values
+ * are updated manually using javascript (programtically)
+ * @param {Reference to Form instance which needs to be updated} form
+ */
+export function updateFormValidity(form) {
+
+    let tempValidationMap = new Map
+    //Store new validity state of each field in a map
+    for (let fieldId of form.fields.keys()) {
+        let updatedValidity = validateField(form[fieldId].value, form[fieldId].validation);
+        tempValidationMap.set(fieldId, updatedValidity)
+    }
+
+    // Update the validity of whole form and each field
+    formValidity.update(store => { 
+        let isFormValid = true;
+        let updatedFields = {}
+        for (const [key, field] of Object.entries(store[form.formId]['fields'])) {
+            field.isValid = tempValidationMap.get(key);
+            updatedFields[key] = {...field}
+            if (!field.isValid) {
+                isFormValid = false;
+            }
+        }
+
+        store[form.formId].fields = updatedFields
+        store[form.formId].isValid = isFormValid;
+
+        return store;
+    })
 }
 
 /**

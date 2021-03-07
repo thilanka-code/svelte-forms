@@ -1,1 +1,1 @@
-export { Form, formValidity, validation } from './validator.js';
+export { Form, formValidity, validation, updateFormValidity } from './validator.js';

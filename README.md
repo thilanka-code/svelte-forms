@@ -12,7 +12,7 @@ npm i "@slimkit-ui/svelte-forms"
 import { Form, formValidity, validation } from "@slimkit-ui/svelte-forms";
 
 myForm = new Form('customerForm', {
-    name: { value: "Thilanka", validation: {minLength: 5, maxLength: 20},
+    name: { value: "Thilanka", validation: {minLength: 5, maxLength: 20}},
     email: { value: '', validation: {email:''} }
 })
 
