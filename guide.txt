@@ -1,9 +1,9 @@
+npm run build
+
 npm publish --access public
 
 Delete whole npm packages
 =========================
-
-npm unpublish "@slimkit-ui/svelte-forms" --force
 
 
 **When using npm pack, change main: in package.json to: main: "index.js"
