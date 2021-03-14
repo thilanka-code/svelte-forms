@@ -100,6 +100,38 @@ export function validation(node, formField) {
 }
 
 /**
+ * This method is called dynamically ($: context). It will validate the value bounded against
+ * provided rules in the validation object. This method uses the formField.isDirty so you will
+ * need to get it from the component. Svelte Element components usually provide this by means of
+ * variable bindings.
+ * 
+ * @param {*} formField { value: "", validation: { minLength: 1 } }
+ */
+ export function componentValidation(formField) {
+
+    let isValid = validateField(formField.value, formField.validation);
+    formField['isValid'] = isValid;
+    formField['showError'] = formField['isDirty'] && !isValid;
+
+    formValidity.update(store => {
+
+        store[formField.form]['fields'][formField.fieldId] = { isValid: isValid, isDirty: formField['isDirty'], showError: formField['isDirty'] && !isValid };
+        // Update the validity of whole form
+        let isFormValid = true;
+        for (const [key, field] of Object.entries(store[formField.form]['fields'])) {
+            if (!field.isValid) {
+                isFormValid = false;
+                break;
+            }
+        }
+
+        store[formField.form].isValid = isFormValid;
+        store[formField.form].isDirty = formField['isDirty'];
+        return store;
+    })
+}
+
+/**
  * Iterate over all fields and update if form is valid or not. Usually this should be called after bounded values
  * are updated manually using javascript (programtically)
  * @param {Reference to Form instance which needs to be updated} form
@@ -200,11 +232,11 @@ function ruleChecker(value, rule) {
         return value 
             && value.match(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
     } else if (ruleType === "minLength") {
-        return value && value.length >= ruleValue;
+        return value && (value + '').length >= ruleValue; //Value is always converted to str before rules
     } else if (ruleType === "maxLength") {
-        return value.length <= ruleValue;
+        return (value + '').length <= ruleValue;
     } else if (ruleType === "length") {
-        return value && value.length === ruleValue;
+        return value && (value + '').length === ruleValue;
     } else {
         console.error(`Unknown validator type '${ruleType}'`);
         return true;
