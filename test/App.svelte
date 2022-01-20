@@ -14,6 +14,7 @@
 const submitHandler = () => {
         console.log(myForm.name.value);
         console.log(myForm.age.value);
+        console.log(myForm.getValue());
 }
 </script>
 <p>Hello world!</p>

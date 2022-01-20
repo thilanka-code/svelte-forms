@@ -27,6 +27,18 @@ export function Form (formId, formFields) {
         this[fld.fieldId] = fld;
         this.fields.set(fld.fieldId, fld);
     }
+    
+    /**
+     * 
+     * @returns Key value object of the form fields
+     */
+    this.getValue = () => {
+        let obj = {}
+        this.fields.forEach((val, key) =>{
+            obj = {...obj, [key]: val.value}
+        })
+        return obj;
+    }
 
     //Explain below statement
     // this.isValid = () => Array.from(this.fields.values())
@@ -70,7 +82,7 @@ export function validation(node, formField) {
         formField['isValid'] = isValid;
         formField['isDirty'] = true;
         formField['showError'] = !isValid;
-        
+
         formValidity.update(store => {
 
             store[formField.form]['fields'][formField.fieldId] = { isValid: isValid, isDirty: true, showError: !isValid };
