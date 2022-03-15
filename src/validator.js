@@ -39,6 +39,18 @@ export function Form (formId, formFields) {
         })
         return obj;
     }
+    
+    /**
+     * @param {*} flds array of field objects [{ myFieldId: { value: "xxx", validation: { minLength: 1 }}}]
+     */
+    this.addFields = (flds) => {
+        for(let fld of flds) {
+            let key = Object.keys(fld)[0];
+            fld = { ...fld[key], fieldId: key, form: this.formId };
+            this[fld.fieldId] = fld;
+            this.fields.set(fld.fieldId, fld);
+        }
+    }
 
     //Explain below statement
     // this.isValid = () => Array.from(this.fields.values())
