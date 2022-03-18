@@ -43,12 +43,104 @@ export function Form (formId, formFields) {
     /**
      * @param {*} flds array of field objects [{ myFieldId: { value: "xxx", validation: { minLength: 1 }}}]
      */
-    this.addFields = (flds) => {
+     this.addFields = (flds) => {
         for(let fld of flds) {
-            let key = Object.keys(fld)[0];
-            fld = { ...fld[key], fieldId: key, form: this.formId };
+            this.addField(fld)
+        }
+    }
+
+    /**
+     * @deprecated This implementation is broken. Please fix!
+     * 
+     * @param {*} fld 
+     */
+    this.addField = (fld) => {
+        let groupName = Object.keys(fld)[0];
+        if (fld[groupName].groups) {
+            console.log(JSON.stringify(fld));
+            if (this[groupName] && this[groupName].groups) {
+                console.log('adding to existing group: '+groupName);
+                console.log(fld[groupName].groups);
+                for(const group of fld[groupName].groups) {
+                    fld[groupName].groups = fld[groupName].groups.map((block_array) => {
+                        console.log(block_array.length);
+                        block_array = block_array.map((field) => {
+                            const field_key = Object.keys(field)[0]
+                            return {...field[field_key], fieldId: field_key, form: this.formId}
+                        })
+                        console.log(block_array.length);
+                        return block_array
+                    })
+                }
+                console.log(fld[groupName].groups.length);
+                console.log(fld[groupName].groups);
+                this[groupName].groups = [...this[groupName].groups, fld[groupName].groups]; 
+                console.log(JSON.stringify(this[groupName]));
+                // this.fields.set(groupName, fld[groupName]);
+            } else {
+                fld[groupName].groups = fld[groupName].groups.map((block) => {
+                    
+                    return block.map((field) => {
+                        const field_key = Object.keys(field)[0]
+                        return {...field[field_key], fieldId: field_key, form: this.formId}
+                    })
+                })
+                this[groupName] = fld[groupName];
+                this.fields.set(groupName, fld[groupName]);
+            }
+            console.log(JSON.stringify(fld));
+            console.log(JSON.stringify(this));
+        } else {
+            fld = { ...fld[groupName], fieldId: groupName, form: this.formId };
             this[fld.fieldId] = fld;
             this.fields.set(fld.fieldId, fld);
+        }
+    }
+
+    /**
+     * Group is an array of fields. This will append to existing GroupSet.
+     * GroupSet is an array of Groups. GroupField is wrapper of GroupSet
+     * @param {*} groupSetName Name of group field Eg: PartyBlocks = PartyBlocks: { groups: []}
+     * @param {*} group array of field objects [{ myFieldId: { value: "xxx", validation: { minLength: 1 }}}, ]
+     */
+     this.appendGroup = (groupSetName, group) => {
+        if (!this[groupSetName] || !this[groupSetName].groups) {
+            const groupField = { groups: [] }
+            this[groupSetName] = groupField
+            this.fields.set(groupSetName, groupField);
+        } 
+        // Enrich group fields with fieldId and form
+        group = group.map((field)=> {
+            const fieldId = Object.keys(field)[0]
+            return {...field[fieldId], fieldId, form: this.formId}
+        })
+        this[groupSetName].groups = [...this[groupSetName].groups, group]
+        this[groupSetName] = this[groupSetName]
+    }
+
+
+    this.removeField = (fieldId) => {
+        delete this[fieldId]
+        this.fields.delete(fieldId)
+    }
+
+    this.removeFields = (fieldIds) => {
+        for(const fieldId of fieldIds) {
+            this.removeField(fieldId)
+        }
+    }
+
+    /**
+     * Remove group in the group set
+     * @param {*} groupSetName Name of the group set field
+     * @param {*} index index of the group in the group set
+     */
+     this.removeGroup = (groupSetName, index) => {
+        if (this[groupSetName] && this[groupSetName].groups && this[groupSetName].groups.length > 0) {
+            this[groupSetName].groups.splice(index, 1)
+            this[groupSetName].groups = [...this[groupSetName].groups]
+        } else {
+            console.error("Invalid group field or index")
         }
     }
 
