@@ -29,13 +29,25 @@ export function Form (formId, formFields) {
     }
     
     /**
-     * 
+     * Value of group: { myGroupField: [{field01: 'x', field02: 'y'}, {field01: 'x2', field02: 'y2'}]}
      * @returns Key value object of the form fields
      */
     this.getValue = () => {
         let obj = {}
         this.fields.forEach((val, key) =>{
-            obj = {...obj, [key]: val.value}
+            if (val.groups) {
+                const groupSet = []
+                for(const group of val.groups) {
+                    const fieldsObj = {}
+                    for (const fld of group) {
+                        fieldsObj[fld.fieldId] = fld.value
+                    }
+                    groupSet.push(fieldsObj)   
+                }
+                obj = {...obj, [key]: groupSet}
+            } else {
+                obj = {...obj, [key]: val.value}
+            }
         })
         return obj;
     }
@@ -43,55 +55,40 @@ export function Form (formId, formFields) {
     /**
      * @param {*} flds array of field objects [{ myFieldId: { value: "xxx", validation: { minLength: 1 }}}]
      */
-     this.addFields = (flds) => {
+    this.addFields = (flds) => {
         for(let fld of flds) {
             this.addField(fld)
         }
     }
 
-    /**
-     * @deprecated This implementation is broken. Please fix!
-     * 
-     * @param {*} fld 
-     */
     this.addField = (fld) => {
-        let groupName = Object.keys(fld)[0];
-        if (fld[groupName].groups) {
-            console.log(JSON.stringify(fld));
-            if (this[groupName] && this[groupName].groups) {
-                console.log('adding to existing group: '+groupName);
-                console.log(fld[groupName].groups);
-                for(const group of fld[groupName].groups) {
-                    fld[groupName].groups = fld[groupName].groups.map((block_array) => {
-                        console.log(block_array.length);
+        let fieldId = Object.keys(fld)[0];
+        if (fld[fieldId].groups) { //Adding a group field
+            if (this[fieldId] && this[fieldId].groups) { //adding to existing group
+                for(const group of fld[fieldId].groups) {
+                    fld[fieldId].groups = fld[fieldId].groups.map((block_array) => {
                         block_array = block_array.map((field) => {
                             const field_key = Object.keys(field)[0]
                             return {...field[field_key], fieldId: field_key, form: this.formId}
                         })
-                        console.log(block_array.length);
                         return block_array
                     })
                 }
-                console.log(fld[groupName].groups.length);
-                console.log(fld[groupName].groups);
-                this[groupName].groups = [...this[groupName].groups, fld[groupName].groups]; 
-                console.log(JSON.stringify(this[groupName]));
+                this[fieldId].groups = [...this[fieldId].groups, fld[fieldId].groups]; 
                 // this.fields.set(groupName, fld[groupName]);
             } else {
-                fld[groupName].groups = fld[groupName].groups.map((block) => {
+                fld[fieldId].groups = fld[fieldId].groups.map((block) => {
                     
                     return block.map((field) => {
                         const field_key = Object.keys(field)[0]
                         return {...field[field_key], fieldId: field_key, form: this.formId}
                     })
                 })
-                this[groupName] = fld[groupName];
-                this.fields.set(groupName, fld[groupName]);
+                this[fieldId] = fld[fieldId];
+                this.fields.set(fieldId, fld[fieldId]);
             }
-            console.log(JSON.stringify(fld));
-            console.log(JSON.stringify(this));
         } else {
-            fld = { ...fld[groupName], fieldId: groupName, form: this.formId };
+            fld = { ...fld[fieldId], fieldId: fieldId, form: this.formId };
             this[fld.fieldId] = fld;
             this.fields.set(fld.fieldId, fld);
         }
@@ -103,7 +100,7 @@ export function Form (formId, formFields) {
      * @param {*} groupSetName Name of group field Eg: PartyBlocks = PartyBlocks: { groups: []}
      * @param {*} group array of field objects [{ myFieldId: { value: "xxx", validation: { minLength: 1 }}}, ]
      */
-     this.appendGroup = (groupSetName, group) => {
+    this.appendGroup = (groupSetName, group) => {
         if (!this[groupSetName] || !this[groupSetName].groups) {
             const groupField = { groups: [] }
             this[groupSetName] = groupField
@@ -118,7 +115,6 @@ export function Form (formId, formFields) {
         this[groupSetName] = this[groupSetName]
     }
 
-
     this.removeField = (fieldId) => {
         delete this[fieldId]
         this.fields.delete(fieldId)
@@ -131,16 +127,21 @@ export function Form (formId, formFields) {
     }
 
     /**
-     * Remove group in the group set
+     * 
      * @param {*} groupSetName Name of the group set field
      * @param {*} index index of the group in the group set
      */
-     this.removeGroup = (groupSetName, index) => {
-        if (this[groupSetName] && this[groupSetName].groups && this[groupSetName].groups.length > 0) {
-            this[groupSetName].groups.splice(index, 1)
-            this[groupSetName].groups = [...this[groupSetName].groups]
-        } else {
-            console.error("Invalid group field or index")
+    this.removeGroup = (groupSetName, index) => {
+        if (index) {   
+            if (this[groupSetName] && this[groupSetName].groups && this[groupSetName].groups.length > 0) {
+                this[groupSetName].groups.splice(index, 1)
+                this[groupSetName].groups = [...this[groupSetName].groups]
+            } else {
+                console.error("Invalid group field '" + groupSetName + "' or index: " + index)
+            }
+        } else { //Print error if group name is invalid
+            delete this[groupSetName]
+            this.fields.delete(groupSetName)
         }
     }
 
@@ -166,7 +167,6 @@ export function validation(node, formField) {
     formField['showError'] = false;
 
     formValidity.update(store => {
-        
         store[formField.form]['fields'][formField.fieldId] = { isValid: initialValid, isDirty: false, showError: false };
         // Update the validity of whole form
         let isFormValid = true;
